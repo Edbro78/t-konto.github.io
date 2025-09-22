@@ -1,1 +1,183 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2.2.3/dist/chartjs-chart-treemap.min.js"></script>
+    <script src="script.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="antialiased p-8">
 
+    <div class="container mx-auto max-w-7xl">
+        
+        
+
+        <!-- Main Dashboard Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Asset & Liability Sliders -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
+                
+                <div class="space-y-6">
+                    <!-- Eiendeler (Assets) -->
+                    <div class="bg-cyan-20 pt-0 px-4 pb-4 rounded-xl">
+                        <h3 class="heading-m mb-2">Eiendeler</h3>
+                        <div id="assets-container" class="space-y-4">
+                            <!-- Dynamic assets will be added here by JavaScript -->
+                        </div>
+                        <button id="add-asset-btn" class="mt-4 w-full bg-blue-60 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue focus:outline-none focus:ring-2 focus:ring-blue-60 focus:ring-offset-2 transition-colors duration-200">
+                            Legg til eiendel
+                        </button>
+                    </div>
+                    
+                    <!-- Gjeld (Liabilities) -->
+                    <div class="bg-cyan-20 p-4 rounded-xl">
+                        <h3 class="heading-m mb-2">Gjeld</h3>
+                        <div id="liabilities-container" class="space-y-4">
+                            <!-- Dynamic liabilities will be added here by JavaScript -->
+                        </div>
+                        <div class="space-y-4 mt-4">
+                            <!-- Fixed input fields for loan term, interest rate, and loan type -->
+                            <div>
+                                <label for="loan-type" class="block text-sm font-medium mb-1 label-uppercase">Lånetype</label>
+                                <select id="loan-type" class="w-full p-2 border border-blue-15 rounded-md text-sm bg-white text-coal">
+                                    <option value="annuity">Annuitetslån</option>
+                                    <option value="serial">Serielån</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="loan-term-range" class="block text-sm font-medium mb-1 label-uppercase">Lånetid (år)</label>
+                                <div class="range-container">
+                                    <input type="range" id="loan-term-range" min="1" max="30" value="25" class="w-full h-2 bg-blue-15 rounded-lg appearance-none cursor-pointer">
+                                    <span id="loan-term-value" class="ml-4 text-sm font-semibold w-24 text-right">25 år</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="interest-rate-range" class="block text-sm font-medium mb-1 label-uppercase">Rentekostnader (%)</label>
+                                <div class="range-container">
+                                    <input type="range" id="interest-rate-range" min="0.5" max="10" step="0.1" value="4.0" class="w-full h-2 bg-blue-15 rounded-lg appearance-none cursor-pointer">
+                                    <span id="interest-rate-value" class="ml-4 text-sm font-semibold w-24 text-right">4.0 %</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="add-liability-btn" class="mt-4 w-full bg-blue-60 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue focus:outline-none focus:ring-2 focus:ring-blue-60 focus:ring-offset-2 transition-colors duration-200">
+                            Legg til gjeld
+                        </button>
+                    </div>
+
+                    
+                </div>
+            </div>
+
+            <!-- Visualizations and Summary -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                
+
+                
+
+                <!-- Charts, KPIs and static right rail on large screens -->
+                <div class="grid grid-cols-1 lg:[grid-template-columns:minmax(0,1fr)_minmax(0,1.35fr)_6rem] gap-6 items-stretch">
+                    <!-- T-Account Visualization -->
+                    <div id="taccount-card" class="bg-white p-6 rounded-xl shadow-lg h-full">
+                        <div class="relative w-full h-[600px] flex">
+                            <!-- Assets Column -->
+                            <div class="w-1/2 pt-0 px-4 pb-4 flex flex-col items-center">
+                                <h3 class="heading-m mb-2">Eiendeler</h3>
+                                <div id="assets-bar-container" class="w-[98%] h-full bg-white rounded-lg relative overflow-hidden flex flex-col-reverse items-center justify-start">
+                                    <!-- Dynamic asset segments will be added here -->
+                                </div>
+                            </div>
+                            <!-- Separator Line -->
+                            <div class="absolute inset-y-0 left-1/2 w-1 bg-coal transform -translate-x-1/2"></div>
+                            <!-- Financing Column -->
+                            <div class="w-1/2 pt-0 px-4 pb-4 flex flex-col items-center">
+                                <h3 class="heading-m mb-2">Finansiering</h3>
+                                <div id="financing-bar-container" class="w-[98%] h-full bg-white rounded-lg relative overflow-hidden flex flex-col-reverse items-center justify-start">
+                                    <!-- Dynamic financing segments will be added here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Key Ratios Table -->
+                    <div id="kpi-card" class="bg-white p-6 rounded-xl shadow-lg h-full">
+                        <h3 class="heading-m mb-4">Nøkkeltall og anbefalinger</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left table-auto">
+                                <thead class="border-b-2 border-blue-15 text-sm">
+                                    <tr class="text-dark-blue">
+                                        <th class="py-2 px-4 font-semibold">Indikator</th>
+                                        <th class="py-2 px-4 font-semibold text-right">Din verdi</th>
+                                        <th class="py-2 px-4 font-semibold text-right">Anbefaling</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ratios-table-body" class="text-sm">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Static right rail with toggle button (always visible on large screens) -->
+                    <div id="kpi-rail" class="bg-white p-3 rounded-xl shadow-lg h-full hidden lg:flex items-start justify-center">
+                        <button id="toggle-kpi-btn" class="inline-flex items-center gap-2 text-xs bg-blue-60 text-white px-2 py-1 rounded-full hover:bg-blue focus:outline-none focus:ring-2 focus:ring-blue-60 focus:ring-offset-2 shadow" aria-pressed="false">
+                            <i class="fa-solid fa-eye-slash"></i>
+                            Skjul
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Income and Summary aligned with top layout -->
+                <div class="grid grid-cols-1 lg:[grid-template-columns:minmax(0,1.6fr)_minmax(0,0.85fr)_6rem] gap-6 items-stretch">
+                    <!-- Income box -->
+                    <div id="income-card" class="bg-cyan-20 p-4 rounded-xl h-full lg:col-span-1">
+                        <h3 class="heading-m mb-2">Inntekt</h3>
+                        <div id="income-container" class="space-y-4">
+                            <!-- Dynamic income will be added here by JavaScript -->
+                        </div>
+                        <!-- Annual costs slider - styled like income rows -->
+                        <div id="annual-costs-group" class="mt-6 slider-row w-full">
+                            <input type="text" value="Årlige kostnader" class="income-name-input p-2 border border-blue-15 rounded-md text-sm bg-white text-coal" readonly>
+                            <div class="range-container">
+                                <input type="range" id="annual-costs-range" min="0" max="2000000" step="10000" value="0" class="income-value-input rounded-lg appearance-none cursor-pointer">
+                                <span id="annual-costs-value" class="income-value-display value-label text-sm font-semibold">0 kr</span>
+                            </div>
+                            <button id="remove-annual-costs-btn" class="text-blue-60 hover:text-dark-blue transition-colors duration-200 p-2">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <button id="add-income-btn" class="mt-4 w-full bg-blue-60 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue focus:outline-none focus:ring-2 focus:ring-blue-60 focus:ring-offset-2 transition-colors duration-200">
+                            Legg til inntekt
+                        </button>
+                    </div>
+                    <!-- Summary card (aligned to second column) -->
+                    <div id="summary-card" class="bg-cyan-20 p-4 rounded-xl h-full lg:col-start-2 lg:col-span-2">
+                        <div class="flex flex-col justify-around items-center h-full space-y-6">
+                            <div class="text-center">
+                                <h3 class="text-sm md:text-base font-semibold uppercase text-assets-blue">Eiendeler</h3>
+                                <p id="total-assets" class="text-xl md:text-2xl font-bold text-assets-blue mt-1">25 000 000 kr</p>
+                            </div>
+                            <div class="text-center">
+                                <h3 class="text-sm md:text-base font-semibold uppercase text-stop-red">Gjeld <span id="liabilities-percent" class="subtle-percent">(0%)</span></h3>
+                                <p id="total-liabilities" class="text-xl md:text-2xl font-bold text-stop-red mt-1">11 000 000 kr</p>
+                            </div>
+                            <div class="text-center">
+                                <h3 class="text-sm md:text-base font-semibold uppercase text-go-green">Egenkapital <span id="equity-percent" class="subtle-percent">(0%)</span></h3>
+                                <p id="net-worth" class="text-xl md:text-2xl font-bold text-go-green mt-1">14 000 000 kr</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+</body>
+</html>
