@@ -179,10 +179,11 @@ const updateDashboard = () => {
     const liquidityLiability = liabilities.find(l => l.id === 'liability-2');
     const annenGjeldValue = liquidityLiability?.value || 0;
     const annualCosts = parseInt(document.getElementById('annual-costs-range')?.value || '0');
+    const annualTax = parseInt(document.getElementById('annual-tax-range')?.value || '0');
 
     // Update display values and range fill for fixed elements
     document.getElementById('loan-term-value').textContent = `${loanTerm} år`;
-    updateRangeFill(document.getElementById('loan-term-range'), loanTerm, document.getElementById('loan-term-range').max, '#D9576F');
+    updateRangeFill(document.getElementById('loan-term-range'), loanTerm, document.getElementById('loan-term-range').max, '#F66380');
     document.getElementById('interest-rate-value').textContent = `${parseFloat(document.getElementById('interest-rate-range').value).toFixed(1)} %`;
     updateRangeFill(document.getElementById('interest-rate-range'), parseFloat(document.getElementById('interest-rate-range').value), document.getElementById('interest-rate-range').max, '#D9576F');
     
@@ -289,7 +290,8 @@ const updateDashboard = () => {
     const loanToIncomeRatio = totalAnnualIncome > 0 ? totalLiabilities / totalAnnualIncome : 0;
     const debtToEquityRatio = equity > 0 ? totalLiabilities / equity : 0;
     const annualPaymentToIncomeRatio = totalAnnualIncome > 0 ? totalAnnualPayment / totalAnnualIncome : 0;
-    const annualCashFlow = totalAnnualIncome - annualCosts - totalAnnualPayment;
+    const totalAnnualCosts = annualCosts + annualTax;
+    const annualCashFlow = totalAnnualIncome - totalAnnualCosts - totalAnnualPayment;
     const recommendedLiquidityBuffer = (totalAnnualIncome / 12) * 2;
 
     const incomeToDebtRec = 0.2; // Minst 20%
@@ -311,7 +313,7 @@ const updateDashboard = () => {
     
     const ratios = [
         { label: 'Sum inntekter', value: totalAnnualIncome, format: formatCurrency, recommended: '-', status: null },
-        { label: 'Årlige kostnader', value: annualCosts, format: formatCurrency, recommended: '-', status: null },
+        { label: 'Årlige kostnader', value: totalAnnualCosts, format: formatCurrency, recommended: '-', status: null },
         { label: 'Renter og avdrag per år', value: totalAnnualPayment, format: formatCurrency, recommended: '-', status: null },
         { label: 'Kontantstrøm per år', value: annualCashFlow, format: formatCurrency, recommended: '-', status: null },
         { label: 'Anbefalt bufferkonto / Likviditetsfond', value: 0, format: formatCurrency, recommended: formatCurrency(recommendedLiquidityBuffer), status: null },
@@ -347,7 +349,7 @@ const createAssetInput = (asset) => {
             <div class="slider-row w-full">
                 <input type="text" value="${asset.name}" class="asset-name-input p-2 border border-blue-15 rounded-md text-sm bg-white text-coal" readonly>
                 <div class="range-container">
-                    <input type="range" id="${asset.id}" min="0" max="${asset.max}" value="${asset.value}" class="asset-value-input rounded-lg appearance-none cursor-not-allowed" disabled>
+                    <input type="range" id="${asset.id}" min="0" max="${asset.max}" step="100000" value="${asset.value}" class="asset-value-input rounded-lg appearance-none cursor-not-allowed" disabled>
                     <span class="asset-value-display value-label text-sm font-semibold">${formatCurrency(asset.value)}</span>
                 </div>
                 <button class="remove-asset-btn text-blue-60 hover:text-dark-blue transition-colors duration-200 p-2">
@@ -360,7 +362,7 @@ const createAssetInput = (asset) => {
             <div class="slider-row w-full">
                 <input type="text" value="${asset.name}" class="asset-name-input p-2 border border-blue-15 rounded-md text-sm bg-white text-coal" placeholder="Navn på eiendel">
                 <div class="range-container">
-                    <input type="range" id="${asset.id}" min="0" max="${asset.max}" value="${asset.value}" class="asset-value-input rounded-lg appearance-none cursor-pointer">
+                    <input type="range" id="${asset.id}" min="0" max="${asset.max}" step="100000" value="${asset.value}" class="asset-value-input rounded-lg appearance-none cursor-pointer">
                     <span class="asset-value-display value-label text-sm font-semibold">${formatCurrency(asset.value)}</span>
                 </div>
                 <button class="remove-asset-btn text-blue-60 hover:text-dark-blue transition-colors duration-200 p-2">
@@ -406,7 +408,7 @@ const createLiabilityInput = (liability) => {
         <div class="slider-row w-full">
             <input type="text" value="${liability.name}" class="liability-name-input p-2 border border-blue-15 rounded-md text-sm bg-white text-coal" placeholder="Navn på gjeld">
             <div class="range-container">
-                <input type="range" id="${liability.id}" min="0" max="${liability.max}" value="${liability.value}" class="liability-value-input rounded-lg appearance-none cursor-pointer">
+                <input type="range" id="${liability.id}" min="0" max="${liability.max}" step="100000" value="${liability.value}" class="liability-value-input rounded-lg appearance-none cursor-pointer">
                 <span class="liability-value-display value-label text-sm font-semibold">${formatCurrency(liability.value)}</span>
             </div>
             <button class="remove-liability-btn text-blue-60 hover:text-dark-blue transition-colors duration-200 p-2">
@@ -447,7 +449,7 @@ const createIncomeInput = (incomeItem) => {
         <div class="slider-row w-full">
             <input type="text" value="${incomeItem.name}" class="income-name-input p-2 border border-blue-15 rounded-md text-sm bg-white text-coal" placeholder="Navn på inntekt">
             <div class="range-container">
-                <input type="range" id="${incomeItem.id}" min="0" max="${incomeItem.max}" value="${incomeItem.value}" class="income-value-input rounded-lg appearance-none cursor-pointer">
+                <input type="range" id="${incomeItem.id}" min="0" max="${incomeItem.max}" step="100000" value="${incomeItem.value}" class="income-value-input rounded-lg appearance-none cursor-pointer">
                 <span class="income-value-display value-label text-sm font-semibold">${formatCurrency(incomeItem.value)}</span>
             </div>
             <button class="remove-income-btn text-blue-60 hover:text-dark-blue transition-colors duration-200 p-2">
@@ -599,6 +601,9 @@ window.onload = () => {
     const annualCostsRange = document.getElementById('annual-costs-range');
     const annualCostsValue = document.getElementById('annual-costs-value');
     const removeAnnualCostsBtn = document.getElementById('remove-annual-costs-btn');
+    const annualTaxRange = document.getElementById('annual-tax-range');
+    const annualTaxValue = document.getElementById('annual-tax-value');
+    const removeAnnualTaxBtn = document.getElementById('remove-annual-tax-btn');
     if (toggleBtn && kpiCard && tAccountCard) {
         toggleBtn.addEventListener('click', () => {
             const hidden = kpiCard.classList.toggle('hidden');
@@ -636,6 +641,64 @@ window.onload = () => {
                 if (range) range.value = 0;
                 updateDashboard();
                 group.remove();
+            }
+        });
+    }
+
+    // Wire up annual tax slider
+    if (annualTaxRange && annualTaxValue) {
+        const updateTax = () => {
+            const value = parseInt(annualTaxRange.value);
+            annualTaxValue.textContent = formatCurrency(value);
+            updateRangeFill(annualTaxRange, value, annualTaxRange.max, '#F2C248');
+            updateDashboard();
+        };
+        annualTaxRange.addEventListener('input', updateTax);
+        updateTax();
+    }
+
+    // Remove annual tax row
+    if (removeAnnualTaxBtn) {
+        removeAnnualTaxBtn.addEventListener('click', () => {
+            const group = document.getElementById('annual-tax-group');
+            if (group) {
+                const range = document.getElementById('annual-tax-range');
+                if (range) range.value = 0;
+                updateDashboard();
+                group.remove();
+            }
+        });
+    }
+
+    // Disclaimer modal functionality
+    const disclaimerBtn = document.getElementById('disclaimer-btn');
+    const disclaimerModal = document.getElementById('disclaimer-modal');
+    const closeDisclaimerBtn = document.getElementById('close-disclaimer');
+
+    if (disclaimerBtn && disclaimerModal && closeDisclaimerBtn) {
+        // Show disclaimer modal
+        disclaimerBtn.addEventListener('click', () => {
+            disclaimerModal.classList.remove('hidden');
+        });
+
+        // Close disclaimer modal
+        const closeModal = () => {
+            disclaimerModal.classList.add('hidden');
+        };
+
+        closeDisclaimerBtn.addEventListener('click', closeModal);
+
+        // Close modal when clicking outside of it
+        disclaimerModal.addEventListener('click', (event) => {
+            if (event.target === disclaimerModal) {
+                closeModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !disclaimerModal.classList.contains('hidden')) {
+                closeModal();
             }
         });
     }
