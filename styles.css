@@ -1,1 +1,355 @@
+.asset-name-input,
+.liability-name-input,
+.income-name-input {
+    min-width: 8rem;
+    width: auto;
+    flex: 0 0 auto;
+}
+
+.flex.items-center.space-x-2.bg-white.rounded-md.p-2.w-full > .asset-name-input,
+.space-y-2.flex.items-center.space-x-2 > .liability-name-input,
+.space-y-2.flex.items-center.space-x-2 > .income-name-input {
+    margin-right: 0.5rem;
+}
+@font-face {
+    font-family: 'Whitney';
+    src: url('https://fonts.cdnfonts.com/s/15451/Whitney-Book.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Whitney';
+    src: url('https://fonts.cdnfonts.com/s/15451/Whitney-Bold.woff') format('woff');
+    font-weight: bold;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Whitney';
+    src: url('https://fonts.cdnfonts.com/s/15451/Whitney-SemiBold.woff') format('woff');
+    font-weight: 600;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Whitney';
+    src: url('https://fonts.cdnfonts.com/s/15451/Whitney-Black.woff') format('woff');
+    font-weight: 900;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Whitney';
+    src: url('https://fonts.cdnfonts.com/s/15451/Whitney-Medium.woff') format('woff');
+    font-weight: 500;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Whitney';
+    src: url('https://fonts.cdnfonts.com/s/15451/Whitney-MediumItalic.woff') format('woff');
+    font-weight: 500;
+    font-style: italic;
+}
+body {
+    font-family: 'Whitney', 'Inter', sans-serif;
+    /* Dark dashboard theme */
+    --bg-color: #0f2236;           /* page background */
+    --panel-color: #1a2f4a;        /* card/input background */
+    --panel-color-2: #1a2f4a;      /* unify boxes to same color */
+    --text-color: #e6f0ff;         /* headings and body text */
+    --muted-text: #9bb1d1;         /* secondary text */
+    --border-color: #2a4060;       /* borders/dividers */
+    --track-color: #213854;        /* slider filled background (base before JS) */
+    --track-unfilled: #13263f;     /* slider unfilled background */
+    --thumb-color: #009FDF;        /* slider thumb accent */
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+h1, h2, h3, h4, h5 {
+    font-family: 'Whitney', 'Inter', sans-serif;
+    color: var(--text-color);
+}
+p {
+    font-family: 'Whitney', 'Inter', sans-serif;
+    color: var(--text-color);
+}
+/* Typography utilities per guideline */
+.heading-xl { /* H1: Whitney Black */
+    font-weight: 900;
+    font-size: clamp(1.5rem, 3vw, 3.5rem);
+    line-height: 1.1;
+    color: var(--text-color) !important;
+}
+.heading-l { /* H2: Whitney Black */
+    font-weight: 900;
+    font-size: clamp(0.75rem, 1.5vw, 2.5rem);
+    line-height: 1.2;
+    color: var(--text-color) !important;
+}
+.heading-m { /* H3: Whitney Bold */
+    font-weight: 700;
+    font-size: 1.125rem; /* same size across sections */
+    line-height: 1.3;
+    color: var(--text-color) !important;
+}
+.heading-s { /* H4: Whitney Bold */
+    font-weight: 700;
+    font-size: 1.125rem; /* same as heading-m for uniform look */
+    line-height: 1.3;
+    color: var(--text-color) !important;
+}
+.label-uppercase { /* Label: Whitney Medium uppercase with 10% spacing */
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #9BBEFA; /* exact light blue for labels */
+}
+.preamble { /* Preamble: Whitney Book with indent */
+    text-indent: 1.5rem;
+    font-size: clamp(1rem, 1.2vw, 1.25rem);
+}
+.paragraph { /* Paragraph: Whitney Book */
+    font-size: clamp(0.875rem, 1vw, 1rem);
+}
+.quote { /* Quote: Whitney Medium Italic */
+    font-weight: 500;
+    font-style: italic;
+    font-size: 1.125rem;
+}
+.text-body {
+    font-size: 16px;
+    font-weight: normal;
+    line-height: 1.5;
+}
+.shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+.table-auto th,
+.table-auto td {
+    color: var(--text-color);
+}
+.border-b-2,
+.border-b,
+.border { border-color: var(--border-color) !important; }
+
+.text-stop-red { color: #D9576F !important; }
+.text-go-green { color: #52CC7B !important; }
+
+/* Pleasant blue for totals under Eiendeler */
+.text-assets-blue { color: #447DF7 !important; }
+
+/* Subtle percentage tag styling */
+.subtle-percent {
+    color: inherit; /* match heading color */
+    font-weight: 600;
+    font-size: 0.75rem; /* roughly text-xs */
+    margin-left: 0.35rem;
+}
+
+
+/* Theming overrides for cards, inputs, tables, and common Tailwind utility classes used in markup */
+.bg-white,
+.bg-cyan-20 {
+    background-color: var(--panel-color) !important;
+}
+
+/* Remove default left padding for input rows so they align with headings */
+.bg-cyan-20 > .space-y-4 > div > .flex.items-center.space-x-2.bg-white.rounded-md,
+.bg-cyan-20 .flex.items-center.space-x-2.bg-white.rounded-md {
+    padding-left: 0 !important;
+    padding-right: 0 !important; /* ingen tomrom til høyre for tall */
+}
+
+/* Make taccount card match the height of the Eiendeler panel */
+#taccount-card {
+    height: 100%;
+}
+
+/* Rows should use full width: name 30%, slider 70% with value at end */
+.flex.items-center.space-x-2.bg-white.rounded-md > .asset-name-input,
+.space-y-2.flex.items-center.space-x-2 > .liability-name-input,
+.space-y-2.flex.items-center.space-x-2 > .income-name-input {
+    margin-right: 0.5rem; /* lite mellomrom mellom navn og slider */
+}
+.flex.items-center.space-x-2.bg-white.rounded-md > .range-container,
+.space-y-2.flex.items-center.space-x-2 > .range-container {
+    flex: 1 1 auto; /* får all ledig bredde */
+}
+
+/* Gjør hele raden til grid for maksimal sliderbredde */
+.bg-cyan-20 .flex.items-center.space-x-2.bg-white.rounded-md,
+.bg-cyan-20 .space-y-2.flex.items-center.space-x-2 {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto auto; /* navn | slider | verdi | x */
+    align-items: center;
+    column-gap: 0.5rem;
+}
+.text-coal { /* unify text color */
+    color: var(--text-color) !important;
+}
+.border-blue-15 { /* subtler borders on dark */
+    border-color: var(--border-color) !important;
+}
+.text-dark-blue,
+.text-blue { /* keep headings/text consistent without touching KPI colors */
+    color: var(--text-color) !important;
+}
+
+/* Exact blue styling for rows under Eiendeler, Gjeld og Inntekt */
+.asset-name-input,
+.liability-name-input,
+.income-name-input {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #9BBEFA; /* light blue */
+    background-color: transparent;
+    border-color: var(--border-color);
+}
+.asset-name-input::placeholder,
+.liability-name-input::placeholder,
+.income-name-input::placeholder { color: #9BBEFA; opacity: 0.7; }
+
+.asset-value-display,
+.liability-value-display,
+.income-value-display,
+#loan-term-value,
+#interest-rate-value,
+#annual-costs-value { color: #9BBEFA; }
+
+/* Styling for the range inputs with dark theme */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    background: var(--track-unfilled);
+    outline: none;
+    opacity: 0.9;
+    transition: opacity .2s;
+    border-radius: 6px;
+}
+input[type="range"]:hover {
+    opacity: 1;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: var(--thumb-color);
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    transition: background .2s;
+}
+input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: var(--thumb-color);
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    transition: background .2s;
+}
+.range-container {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    column-gap: 0.5rem;
+}
+.range-container { padding-right: 0; }
+.range-container .value-label {
+    position: static;
+    width: auto;
+    text-align: right;
+    white-space: nowrap;
+    margin-left: 0;
+    margin-right: 0; /* legg tallet helt til høyre */
+}
+.range-container input[type="range"] { /* keep slider from running under value */
+    width: 100%;
+    min-width: 0;
+}
+.range-container::before { /* remove visual fill strip to let gradient fill show cleanly */
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 0;
+}
+.check-icon {
+    color: #52CC7B;
+    font-size: 1.5rem;
+}
+.cross-icon {
+    color: #D9576F;
+    font-size: 1.5rem;
+}
+.remove-btn {
+    color: #627CA5; /* subtle on dark */
+}
+.remove-btn:hover {
+    color: #9BBEFA; /* lighter on hover */
+}
+
+.input-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.label-cell {
+    flex-grow: 1;
+    padding-right: 1rem;
+}
+
+.value-cell {
+    flex-grow: 1;
+    text-align: right;
+    font-weight: 600;
+}
+
+/* Make income card exactly same inner widths as other slider rows */
+#income-card .slider-row {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto auto; /* name | slider | value | x */
+    align-items: center;
+    column-gap: 0.5rem;
+}
+#income-card .slider-row .income-name-input {
+    min-width: 8rem;
+    width: auto;
+    flex: 0 0 auto;
+}
+
+/* Ensure 0-value sliders look identical by applying same colors and sizes */
+#income-card .income-value-input {
+    height: 12px;
+    background: var(--track-unfilled);
+    border-radius: 6px;
+}
+
+
+
+
+
+/* Make loan type select match the style of asset/liability name inputs */
+#loan-type {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #9BBEFA !important;
+    background-color: transparent;
+    border-color: var(--border-color) !important;
+    font-family: 'Whitney', 'Inter', sans-serif;
+    font-size: 0.875rem; /* same as text-sm */
+    font-weight: 500;
+}
+#loan-type option {
+    background-color: var(--panel-color);
+    color: var(--text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
 
