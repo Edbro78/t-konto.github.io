@@ -61,6 +61,25 @@ body {
     --thumb-color: #009FDF;        /* slider thumb accent */
     background-color: var(--bg-color);
     color: var(--text-color);
+    margin: 0;
+    padding: 16px; /* liten luft rundt hele dashboardet */
+}
+
+/* Scale-to-fit support */
+#dashboard-root {
+    transform-origin: top left;
+    will-change: transform, width, height;
+    position: relative; /* enable translate positioning for centering */
+}
+
+html, body {
+    height: 100%;
+}
+
+/* Remove any unintended max width from Tailwind container utility remnants */
+#dashboard-root {
+    max-width: none;
+    width: 100%;
 }
 h1, h2, h3, h4, h5 {
     font-family: 'Whitney', 'Inter', sans-serif;
@@ -330,6 +349,14 @@ input[type="range"]::-moz-range-thumb {
     border-radius: 6px;
 }
 
+/* Align bottom buttons: move right button slightly down and keep symmetric padding */
+#income-card {
+    padding-bottom: 3rem; /* litt mer luft for perfekt linje og symmetri */
+}
+#add-income-btn {
+    margin-top: 3.5rem !important; /* nudge litt mer ned */
+}
+
 
 
 
@@ -351,5 +378,4 @@ input[type="range"]::-moz-range-thumb {
     text-transform: uppercase;
     letter-spacing: 0.1em;
 }
-
 
