@@ -164,6 +164,43 @@ const updateTAccountChart = (totalAssets, totalLiabilities, netWorth) => {
     }
 };
 
+// Calculate and apply a scale so the whole dashboard fits within the viewport at 100% browser zoom
+const fitDashboardToViewport = () => {
+    const root = document.getElementById('dashboard-root');
+    if (!root) return;
+
+    // Reset scale to measure natural size
+    root.style.transform = 'scale(1)';
+    root.style.width = '';
+    root.style.height = '';
+
+    // Available viewport size minus body padding to leave some whitespace
+    const computed = window.getComputedStyle(document.body);
+    const padLeft = parseFloat(computed.paddingLeft) || 0;
+    const padRight = parseFloat(computed.paddingRight) || 0;
+    const padTop = parseFloat(computed.paddingTop) || 0;
+    const padBottom = parseFloat(computed.paddingBottom) || 0;
+    const viewportWidth = window.innerWidth - padLeft - padRight;
+    const viewportHeight = window.innerHeight - padTop - padBottom;
+
+    const rect = root.getBoundingClientRect();
+    const contentWidth = rect.width;
+    const contentHeight = rect.height;
+
+    // Scale to fit both width and height so alt innhold er synlig.
+    const scaleX = viewportWidth / (contentWidth + 2);
+    const scaleY = viewportHeight / (contentHeight + 2);
+    // Add a small safety margin so vi får litt luft nederst/øverst
+    const scale = Math.min(scaleX, scaleY) * 0.98;
+
+    // Apply scale centered with equal frame on all sides
+    const scaledWidth = contentWidth * scale;
+    const scaledHeight = contentHeight * scale;
+    const offsetX = Math.max(0, (viewportWidth - scaledWidth) / 2);
+    const offsetY = Math.max(0, (viewportHeight - scaledHeight) / 2);
+    root.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+};
+
 // Function to update the background fill of the range input
 function updateRangeFill(input, value, max, fillColor) {
     const percentage = (value / max) * 100;
@@ -334,6 +371,9 @@ const updateDashboard = () => {
         `;
         document.getElementById('ratios-table-body').appendChild(row);
     });
+
+    // Ensure the layout still fits the screen after content changes
+    fitDashboardToViewport();
 };
 
 // Function to create a new asset input
@@ -592,6 +632,8 @@ window.onload = () => {
     });
 
     updateDashboard();
+    // Initial fit after first render
+    fitDashboardToViewport();
 
     // Toggle KPI visibility and expand chart
     const kpiCard = document.getElementById('kpi-card');
@@ -617,6 +659,8 @@ window.onload = () => {
                 toggleBtn.setAttribute('aria-pressed', 'false');
                 tAccountCard.classList.remove('lg:col-span-2');
             }
+            // Recalculate fit after layout change
+            setTimeout(fitDashboardToViewport, 0);
         });
     }
 
@@ -706,4 +750,9 @@ window.onload = () => {
 
 
 
+
+// Re-fit on resize and orientation changes
+window.addEventListener('resize', () => {
+    fitDashboardToViewport();
+});
 
