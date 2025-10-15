@@ -109,7 +109,7 @@ function renderAssetsTreemap(container, items, forcedWidth, forcedHeight) {
         label.style.fontFamily = 'Whitney, Inter, sans-serif';
         label.style.fontWeight = '700';
         const minDim = Math.min(r.w, r.h);
-        const fs = Math.max(10, Math.min(18, Math.floor(minDim / 6)));
+        const fs = Math.max(12, Math.min(22, Math.floor(minDim / 5)));
         label.style.fontSize = fs + 'px';
         label.style.lineHeight = '1.15';
         label.innerHTML = `${r.item.name}<br>${formatCurrency(r.item.value)}`;
@@ -300,9 +300,21 @@ const updateTAccountChart = (totalAssets, totalLiabilities, netWorth) => {
                     // Fallback to CSS handles font-size, but force one pass after draw too
                     try {
                         const isFs = document.getElementById('taccount-card')?.classList?.contains('chart-fullscreen');
-                        const fontPx = isFs ? 18 : 12;
+                        const fontPx = isFs ? 20 : 14;
                         const texts = overlay.querySelectorAll('svg text');
                         texts.forEach(t => { t.style.fontSize = fontPx + 'px'; t.setAttribute('font-size', String(fontPx)); });
+                        // Remove/neutralize the outer frame stroke to blend with background
+                        const svg = overlay.querySelector('svg');
+                        if (svg) {
+                            const rects = svg.querySelectorAll('rect');
+                            if (rects.length > 0) {
+                                // The first rect is typically the outermost background/border
+                                const outer = rects[0];
+                                outer.setAttribute('stroke', 'none');
+                                outer.style.stroke = 'none';
+                                outer.setAttribute('fill', 'transparent');
+                            }
+                        }
                     } catch (_) {}
                 });
                 googleTreemap = tree;
@@ -384,6 +396,30 @@ const fitDashboardToViewport = () => {
     const offsetX = Math.max(0, (viewportWidth - scaledWidth) / 2);
     const offsetY = Math.max(0, (viewportHeight - scaledHeight) / 2);
     root.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+};
+
+// Scale the fullscreen KPI copy to fit inside the left half without scroll
+const fitFullscreenFiller = () => {
+    const tAccountCard = document.getElementById('taccount-card');
+    if (!tAccountCard || !tAccountCard.classList.contains('chart-fullscreen')) return;
+    const leftContainer = document.getElementById('filler-left');
+    const leftScaleRoot = document.getElementById('kpi-fs-scale');
+    const rightContainer = document.getElementById('filler-right');
+    const rightScaleRoot = document.getElementById('breakdown-fs-scale');
+    const scaleOne = (container, scaleRoot) => {
+        if (!container || !scaleRoot) return;
+        scaleRoot.style.transform = 'scale(1)';
+        const availableWidth = container.clientWidth - 16;
+        const availableHeight = container.clientHeight - 16;
+        const rect = scaleRoot.getBoundingClientRect();
+        const w = rect.width || 1;
+        const h = rect.height || 1;
+        const s = Math.min(availableWidth / w, availableHeight / h, 1);
+        scaleRoot.style.transform = `scale(${s})`;
+    };
+
+    scaleOne(leftContainer, leftScaleRoot);
+    scaleOne(rightContainer, rightScaleRoot);
 };
 
 // Function to update the background fill of the range input
@@ -504,10 +540,16 @@ const updateDashboard = () => {
 
     // Update T-account
     updateTAccountChart(totalAssets, totalLiabilities, netWorth);
+    // After layout changes, fit fullscreen KPI copy if visible
+    setTimeout(fitFullscreenFiller, 0);
 
-    // Update tables
-    
-    document.getElementById('ratios-table-body').innerHTML = '';
+    // Update tables (both main and fullscreen copy)
+    const primaryRatiosBody = document.getElementById('ratios-table-body');
+    const fullscreenRatiosBody = document.getElementById('ratios-table-body-fs');
+    const fullscreenBreakdownBody = document.getElementById('breakdown-table-body-fs');
+    if (primaryRatiosBody) primaryRatiosBody.innerHTML = '';
+    if (fullscreenRatiosBody) fullscreenRatiosBody.innerHTML = '';
+    if (fullscreenBreakdownBody) fullscreenBreakdownBody.innerHTML = '';
     const totalAnnualPayment = annualPayment.annual + interestOnlyForOtherDebts;
     const loanToIncomeRatio = totalAnnualIncome > 0 ? totalLiabilities / totalAnnualIncome : 0;
     const debtToEquityRatio = equity > 0 ? totalLiabilities / equity : 0;
@@ -545,17 +587,42 @@ const updateDashboard = () => {
         { label: 'Gjeldsgrad (gjeld / egenkapital)', value: debtToEquityRatio, format: (val) => `${val.toFixed(2)}x`, recommended: `< 2.5x`, status: checkDebtToEquity },
     ];
     
-    ratios.forEach(item => {
-        const row = document.createElement('tr');
-        row.className = 'border-b border-gray-200';
+    const rowsHtml = ratios.map(item => {
         const formattedValue = item.format(item.value);
-        row.innerHTML = `
-            <td class="py-2 px-4">${item.label}</td>
-            <td class="py-2 px-4 font-semibold text-right">${formattedValue}</td>
-            <td class="py-2 px-4 font-semibold text-right">${item.recommended} ${item.status ? item.status : ''}</td>
+        return `
+            <tr class="border-b border-gray-200">
+                <td class="py-2 px-4">${item.label}</td>
+                <td class="py-2 px-4 font-semibold text-right">${formattedValue}</td>
+                <td class="py-2 px-4 font-semibold text-right">${item.recommended} ${item.status ? item.status : ''}</td>
+            </tr>
         `;
-        document.getElementById('ratios-table-body').appendChild(row);
-    });
+    }).join('');
+    if (primaryRatiosBody) primaryRatiosBody.innerHTML = rowsHtml;
+    if (fullscreenRatiosBody) fullscreenRatiosBody.innerHTML = rowsHtml;
+
+    // Fill breakdown table in fullscreen (uses remaining space)
+    if (fullscreenBreakdownBody) {
+        // Update numeric summary values in the right-hand fullscreen card
+        const assetsEl = document.getElementById('total-assets-fs');
+        const liabilitiesEl = document.getElementById('total-liabilities-fs');
+        const netWorthEl = document.getElementById('net-worth-fs');
+        const eqPctEl = document.getElementById('equity-percent-fs');
+        const liabPctEl = document.getElementById('liabilities-percent-fs');
+        if (assetsEl) assetsEl.textContent = formatCurrency(totalAssets);
+        if (liabilitiesEl) liabilitiesEl.textContent = formatCurrency(totalLiabilities);
+        if (netWorthEl) {
+            netWorthEl.textContent = formatCurrency(netWorth);
+            if (netWorth < 0) {
+                netWorthEl.classList.remove('text-go-green');
+                netWorthEl.classList.add('text-stop-red');
+            } else {
+                netWorthEl.classList.remove('text-stop-red');
+                netWorthEl.classList.add('text-go-green');
+            }
+        }
+        if (eqPctEl) eqPctEl.textContent = `(${equityPercent.toFixed(0)}%)`;
+        if (liabPctEl) liabPctEl.textContent = `(${liabilitiesPercent.toFixed(0)}%)`;
+    }
 
     // Ensure the layout still fits the screen after content changes
     fitDashboardToViewport();
@@ -879,7 +946,9 @@ window.onload = () => {
             } else {
                 // Disable fit scaling in fullscreen mode
                 if (isFs) {
-                    // nothing; dimensions are fixed to viewport
+                    setTimeout(() => {
+                        fitFullscreenFiller();
+                    }, 0);
                 } else {
                     setTimeout(fitDashboardToViewport, 0);
                 }
@@ -1079,6 +1148,7 @@ window.onload = () => {
 // Re-fit on resize and orientation changes
 window.addEventListener('resize', () => {
     fitDashboardToViewport();
+    fitFullscreenFiller();
 });
 
 // Build output text aggregating input values and computed results
