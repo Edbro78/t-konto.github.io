@@ -91,7 +91,7 @@
                         <button id="chart-fs-btn" class="absolute top-2 right-2 z-20 inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-60 text-white hover:bg-blue focus:outline-none focus:ring-2 focus:ring-blue-60 focus:ring-offset-2 shadow" aria-pressed="false" title="Forstørr/tilbakestill">
                             <i class="fa-solid fa-up-right-and-down-left-from-center text-sm"></i>
                         </button>
-                        <div class="relative w-full h-[600px] flex">
+                        <div class="relative w-full h-[600px] flex chart-area">
                             <!-- Assets Column -->
                             <div class="w-1/2 pt-0 px-4 pb-4 flex flex-col items-center">
                                 <h3 class="heading-m mb-2">Eiendeler</h3>
@@ -106,6 +106,45 @@
                                 <h3 class="heading-m mb-2">Finansiering</h3>
                                 <div id="financing-bar-container" class="w-[98%] h-full bg-white rounded-lg relative overflow-hidden flex flex-col-reverse items-center justify-start">
                                     <!-- Dynamic financing segments will be added here -->
+                                </div>
+                            </div>
+                        </div>
+                        <div id="taccount-filler" class="filler-frame">
+                            <div id="filler-left" class="filler-half">
+                                <div class="p-4 h-full">
+                                    <div id="kpi-fs-scale" class="fs-scale-root inline-block">
+                                        <h3 class="heading-m mb-4">Nøkkeltall og anbefalinger</h3>
+                                        <table class="w-full text-left table-auto">
+                                            <thead class="border-b-2 border-blue-15 text-sm">
+                                                <tr class="text-dark-blue">
+                                                    <th class="py-2 px-4 font-semibold">Indikator</th>
+                                                    <th class="py-2 px-4 font-semibold text-right">Din verdi</th>
+                                                    <th class="py-2 px-4 font-semibold text-right">Anbefaling</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="ratios-table-body-fs" class="text-sm"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="filler-right" class="filler-half">
+                                <div class="p-4 h-full">
+                                    <div id="breakdown-fs-scale" class="fs-scale-root inline-block">
+                                        <div class="flex flex-col items-center h-full space-y-10 text-center">
+                                            <div class="text-center">
+                                                <h3 class="text-sm md:text-base font-semibold uppercase text-assets-blue summary-heading">Eiendeler</h3>
+                                                <p id="total-assets-fs" class="text-xl md:text-2xl font-bold text-assets-blue mt-1 summary-value">25 000 000 kr</p>
+                                            </div>
+                                            <div class="text-center">
+                                                <h3 class="text-sm md:text-base font-semibold uppercase text-stop-red summary-heading">Gjeld <span id="liabilities-percent-fs" class="subtle-percent">(0%)</span></h3>
+                                                <p id="total-liabilities-fs" class="text-xl md:text-2xl font-bold text-stop-red mt-1 summary-value">11 000 000 kr</p>
+                                            </div>
+                                            <div class="text-center">
+                                                <h3 class="text-sm md:text-base font-semibold uppercase text-go-green summary-heading">Egenkapital <span id="equity-percent-fs" class="subtle-percent">(0%)</span></h3>
+                                                <p id="net-worth-fs" class="text-xl md:text-2xl font-bold text-go-green mt-1 summary-value">14 000 000 kr</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
