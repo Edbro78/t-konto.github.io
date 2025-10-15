@@ -35,6 +35,88 @@ tailwind.config = {
 let elements = {};
 
 // Chart contexts
+let assetsTreemapChart = null; // Chart.js (legacy) not used for Google treemap now
+let showAssetsTreemap = false; // toggles alternative asset visualization
+let assetsTreemapOverlay = null; // overlay div for treemap
+let googleTreemap = null;
+let treemapResizeObserver = null;
+
+// --- Simple squarified treemap renderer (no external deps) ---
+function renderAssetsTreemap(container, items, forcedWidth, forcedHeight) {
+    // Clear existing children (kept outside caller too, but ensure cleanliness)
+    container.innerHTML = '';
+    container.style.position = 'relative';
+
+    // Use provided size or client dimensions (avoid transform scale issues)
+    const width = Math.max(1, forcedWidth || container.clientWidth || container.offsetWidth || 1);
+    const height = Math.max(1, forcedHeight || container.clientHeight || container.offsetHeight || 1);
+
+    const total = items.reduce((s, it) => s + (it.value || 0), 0) || 1;
+    const values = items.filter(it => it.value > 0).sort((a, b) => b.value - a.value);
+
+    const rectangles = [];
+
+    const layout = (rect, arr, horizontal) => {
+        if (!arr.length) return;
+        if (arr.length === 1) {
+            rectangles.push({ x: rect.x, y: rect.y, w: rect.w, h: rect.h, item: arr[0] });
+            return;
+        }
+        const sum = arr.reduce((s, it) => s + it.value, 0) || 1;
+        let acc = 0;
+        let cut = 0;
+        for (let i = 0; i < arr.length; i++) {
+            acc += arr[i].value;
+            cut = i;
+            if (acc >= sum / 2) break;
+        }
+        const groupA = arr.slice(0, cut + 1);
+        const groupB = arr.slice(cut + 1);
+        const sumA = groupA.reduce((s, it) => s + it.value, 0);
+        const ratio = sumA / sum;
+        if (horizontal) {
+            const wA = rect.w * ratio;
+            layout({ x: rect.x, y: rect.y, w: wA, h: rect.h }, groupA, !horizontal);
+            layout({ x: rect.x + wA, y: rect.y, w: rect.w - wA, h: rect.h }, groupB, !horizontal);
+        } else {
+            const hA = rect.h * ratio;
+            layout({ x: rect.x, y: rect.y, w: rect.w, h: hA }, groupA, !horizontal);
+            layout({ x: rect.x, y: rect.y + hA, w: rect.w, h: rect.h - hA }, groupB, !horizontal);
+        }
+    };
+
+    layout({ x: 0, y: 0, w: width, h: height }, values, width >= height);
+
+    // Render rectangles as absolutely positioned divs
+    for (const r of rectangles) {
+        const div = document.createElement('div');
+        div.style.position = 'absolute';
+        div.style.left = `${(r.x / width) * 100}%`;
+        div.style.top = `${(r.y / height) * 100}%`;
+        div.style.width = `${(r.w / width) * 100}%`;
+        div.style.height = `${(r.h / height) * 100}%`;
+        div.style.backgroundColor = r.item.color || '#447DF7';
+        div.style.borderRadius = '8px';
+        div.style.boxShadow = 'inset 0 0 0 1px rgba(0,0,0,0.25)';
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.justifyContent = 'center';
+        div.style.textAlign = 'center';
+        div.style.padding = '6px';
+
+        const label = document.createElement('div');
+        label.style.color = '#ffffff';
+        label.style.fontFamily = 'Whitney, Inter, sans-serif';
+        label.style.fontWeight = '700';
+        const minDim = Math.min(r.w, r.h);
+        const fs = Math.max(10, Math.min(18, Math.floor(minDim / 6)));
+        label.style.fontSize = fs + 'px';
+        label.style.lineHeight = '1.15';
+        label.innerHTML = `${r.item.name}<br>${formatCurrency(r.item.value)}`;
+        div.appendChild(label);
+        container.appendChild(div);
+    }
+}
 
 // Initial assets, liabilities and income with unique IDs
 let assets = [
@@ -113,6 +195,15 @@ const updateTAccountChart = (totalAssets, totalLiabilities, netWorth) => {
     const financingContainer = document.getElementById('financing-bar-container');
 
     // Clear previous elements
+    // Destroy previous treemap canvas instance if any and remove overlay
+    if (assetsTreemapChart) { try { assetsTreemapChart.destroy(); } catch (_) {} assetsTreemapChart = null; }
+    if (assetsTreemapOverlay && assetsTreemapOverlay.parentElement) { assetsTreemapOverlay.remove(); assetsTreemapOverlay = null; }
+    if (treemapResizeObserver) { try { treemapResizeObserver.disconnect(); } catch (_) {} treemapResizeObserver = null; }
+    const outerFrame = document.querySelector('#taccount-card > div.relative');
+    if (outerFrame && !showAssetsTreemap) {
+        // restore children display when leaving treemap mode
+        Array.from(outerFrame.children).forEach(ch => { if (ch !== assetsTreemapOverlay) ch.style.display = ''; });
+    }
     assetsContainer.innerHTML = '';
     financingContainer.innerHTML = '';
 
@@ -123,27 +214,121 @@ const updateTAccountChart = (totalAssets, totalLiabilities, netWorth) => {
     financingContainer.style.gap = `${gapHeight}px`;
     const minHeightPx = 72; // Minimum height for each bar to keep small values readable
 
-    // Render assets
-    const assetValues = assets.map(asset => asset.value);
-    const totalAssetValues = assetValues.reduce((sum, value) => sum + value, 0);
+    // Render assets either as column bars (default) or treemap when toggled
+    if (!showAssetsTreemap) {
+        const assetValues = assets.map(asset => asset.value);
+        const totalAssetValues = assetValues.reduce((sum, value) => sum + value, 0);
 
-    assets.forEach((asset, index) => {
-        if (asset.value > 0) {
-            const heightPercentage = totalAssetValues > 0 ? (asset.value / totalAssetValues) * 100 : 0;
-            const assetDiv = document.createElement('div');
-            assetDiv.className = `w-full relative flex items-center justify-center text-center transition-all duration-300 rounded-md`;
-            assetDiv.style.backgroundColor = asset.color;
-            assetDiv.style.height = `max(${heightPercentage}%, ${minHeightPx}px)`; // Use max to ensure minimum height
-            assetDiv.innerHTML = `<span class="text-white text-sm font-bold p-2">${asset.name}<br>${formatCurrency(asset.value)}</span>`;
-            assetsContainer.appendChild(assetDiv);
+        assets.forEach((asset) => {
+            if (asset.value > 0) {
+                const heightPercentage = totalAssetValues > 0 ? (asset.value / totalAssetValues) * 100 : 0;
+                const assetDiv = document.createElement('div');
+                assetDiv.className = `w-full relative flex items-center justify-center text-center transition-all duration-300 rounded-md`;
+                assetDiv.style.backgroundColor = asset.color;
+                assetDiv.style.height = `max(${heightPercentage}%, ${minHeightPx}px)`; // Use max to ensure minimum height
+                assetDiv.innerHTML = `<span class="text-white text-sm font-bold p-2">${asset.name}<br>${formatCurrency(asset.value)}</span>`;
+                assetsContainer.appendChild(assetDiv);
+            }
+        });
+    } else {
+        // Google Charts Treemap across the entire frame
+        const frame = outerFrame;
+        if (frame) {
+            // Hide original children
+            Array.from(frame.children).forEach(ch => { ch.style.display = 'none'; });
+
+            const overlay = document.createElement('div');
+            overlay.id = 'google-treemap-overlay';
+            frame.appendChild(overlay);
+            assetsTreemapOverlay = overlay;
+
+            // Load Google Charts (idempotent)
+            if (!window.google || !google.charts) {
+                console.error('Google Charts loader mangler.');
+                return;
+            }
+
+            const buildDataTable = () => {
+                const data = new google.visualization.DataTable();
+                data.addColumn('string', 'Navn');
+                data.addColumn('string', 'Forelder');
+                data.addColumn('number', 'Markedsverdi');
+                data.addColumn('number', 'Farge');
+
+                // Root
+                data.addRow(['Eiendeler', null, 0, 0]);
+
+                // Kategorier identiske med Eiendeler-listen i dashboardet
+                // Unike etiketter er påkrevd av Google Treemap – lag unike ved behov
+                const seen = new Map();
+                const makeUnique = (label) => {
+                    const count = seen.get(label) || 0;
+                    seen.set(label, count + 1);
+                    return count === 0 ? label : `${label} (${count + 1})`;
+                };
+                // Bruk markedsverdi også som fargeverdi slik at vi får blå gradient basert på størrelse
+                assets.filter(a => a.value > 0).forEach(a => {
+                    const uniqueLabel = makeUnique(a.name || 'Eiendel');
+                    data.addRow([uniqueLabel, 'Eiendeler', a.value, a.value]);
+                });
+                return data;
+            };
+
+            const draw = () => {
+                const data = buildDataTable();
+                const numberFmt = new Intl.NumberFormat('nb-NO', { style: 'currency', currency: 'NOK', maximumFractionDigits: 0 });
+                const tree = new google.visualization.TreeMap(overlay);
+                const options = {
+                    // Bruk primære blåfarger fra paletten (lys -> mellom -> mørk)
+                    minColor: '#9BBEFA',   // chart-jordy-blue (dypere lys blå for bedre kontrast)
+                    midColor: '#447DF7',   // chart-crayola-blue
+                    maxColor: '#002359',   // dark-blue
+                    headerHeight: 0, // fjern topp-overskrift (ingen header-bakgrunn)
+                    fontColor: '#e6f0ff',
+                    showScale: false,
+                    backgroundColor: 'transparent',
+                    generateTooltip: (row, size, value) => {
+                        const name = data.getValue(row, 0);
+                        const kr = numberFmt.format(data.getValue(row, 2));
+                        return `<div class=\"p-2 rounded bg-slate-900/90 text-slate-100 text-xs\"><div class=\"font-semibold\">${name}</div><div>Markedsverdi: ${kr}</div></div>`;
+                    }
+                };
+
+                tree.draw(data, options);
+                // When chart is ready, scale label fonts depending on fullscreen
+                google.visualization.events.addListener(tree, 'ready', () => {
+                    // Fallback to CSS handles font-size, but force one pass after draw too
+                    try {
+                        const isFs = document.getElementById('taccount-card')?.classList?.contains('chart-fullscreen');
+                        const fontPx = isFs ? 18 : 12;
+                        const texts = overlay.querySelectorAll('svg text');
+                        texts.forEach(t => { t.style.fontSize = fontPx + 'px'; t.setAttribute('font-size', String(fontPx)); });
+                    } catch (_) {}
+                });
+                googleTreemap = tree;
+                // Re-draw on element size changes
+                if (treemapResizeObserver) { try { treemapResizeObserver.disconnect(); } catch (_) {} }
+                treemapResizeObserver = new ResizeObserver(() => {
+                    try { draw(); } catch (_) {}
+                });
+                treemapResizeObserver.observe(frame);
+            };
+
+            // Load package then draw
+            if (!googleTreemap) {
+                google.charts.load('current', { packages: ['treemap'] });
+                google.charts.setOnLoadCallback(draw);
+            } else {
+                draw();
+            }
         }
-    });
+    }
     
     // Render financing (liabilities and equity)
     const financingValues = [totalLiabilities, netWorth];
     const totalFinancingValues = financingValues.reduce((sum, value) => sum + value, 0);
 
-    if (totalLiabilities > 0) {
+    if (!showAssetsTreemap && totalLiabilities > 0) {
         const liabilitiesDiv = document.createElement('div');
         const liabilityHeightPercentage = totalFinancingValues > 0 ? (totalLiabilities / totalFinancingValues) * 100 : 0;
         liabilitiesDiv.className = `w-full relative flex items-center justify-center text-center transition-all duration-300 rounded-md`;
@@ -153,7 +338,7 @@ const updateTAccountChart = (totalAssets, totalLiabilities, netWorth) => {
         financingContainer.appendChild(liabilitiesDiv);
     }
 
-    if (netWorth > 0) {
+    if (!showAssetsTreemap && netWorth > 0) {
         const equityDiv = document.createElement('div');
         const equityHeightPercentage = totalFinancingValues > 0 ? (netWorth / totalFinancingValues) * 100 : 0;
         equityDiv.className = `w-full relative flex items-center justify-center text-center transition-all duration-300 rounded-md`;
@@ -638,29 +823,74 @@ window.onload = () => {
     // Toggle KPI visibility and expand chart
     const kpiCard = document.getElementById('kpi-card');
     const tAccountCard = document.getElementById('taccount-card');
-    const toggleBtn = document.getElementById('toggle-kpi-btn');
     const kpiRail = document.getElementById('kpi-rail');
+    const chartFsBtn = document.getElementById('chart-fs-btn');
+    const allGraphicsBtn = document.getElementById('all-graphics-btn');
     const annualCostsRange = document.getElementById('annual-costs-range');
     const annualCostsValue = document.getElementById('annual-costs-value');
     const removeAnnualCostsBtn = document.getElementById('remove-annual-costs-btn');
     const annualTaxRange = document.getElementById('annual-tax-range');
     const annualTaxValue = document.getElementById('annual-tax-value');
     const removeAnnualTaxBtn = document.getElementById('remove-annual-tax-btn');
-    if (toggleBtn && kpiCard && tAccountCard) {
-        toggleBtn.addEventListener('click', () => {
-            const hidden = kpiCard.classList.toggle('hidden');
-            if (hidden) {
-                toggleBtn.innerHTML = '<i class="fa-solid fa-eye"></i> Vis';
-                toggleBtn.setAttribute('aria-pressed', 'true');
-                // On large screens, expand T-account to take KPI column as well
-                tAccountCard.classList.add('lg:col-span-2');
-            } else {
-                toggleBtn.innerHTML = '<i class="fa-solid fa-eye-slash"></i> Skjul';
-                toggleBtn.setAttribute('aria-pressed', 'false');
-                tAccountCard.classList.remove('lg:col-span-2');
-            }
-            // Recalculate fit after layout change
+    // Removed toggle button and related logic
+
+    // Toggle alternative assets treemap visualization
+    if (allGraphicsBtn) {
+        allGraphicsBtn.addEventListener('click', () => {
+            showAssetsTreemap = !showAssetsTreemap;
+            updateDashboard();
+            // Re-fit after overlay render to keep frame centered
             setTimeout(fitDashboardToViewport, 0);
+        });
+    }
+
+    // Toggle box visibility for all boxes with .toggle-box-btn
+    document.querySelectorAll('.toggle-box-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const targetId = btn.getAttribute('data-target');
+            const box = document.getElementById(targetId);
+            if (!box) return;
+            box.classList.toggle('box-collapsed');
+            // Toggle icon to eye-slash when collapsed
+            btn.innerHTML = box.classList.contains('box-collapsed')
+                ? '<i class="fa-solid fa-eye-slash text-xs"></i>'
+                : '<i class="fa-solid fa-eye text-xs"></i>';
+            // If we collapse the taccount card while treemap is visible, remove overlay to avoid stray nodes
+            if (targetId === 'taccount-card' && box.classList.contains('box-collapsed')) {
+                if (assetsTreemapOverlay && assetsTreemapOverlay.parentElement) assetsTreemapOverlay.remove();
+            }
+        });
+    });
+
+    // Fullscreen toggle for chart area (both bar and treemap)
+    if (chartFsBtn && tAccountCard) {
+        const handleFsToggle = () => {
+            const isFs = tAccountCard.classList.toggle('chart-fullscreen');
+            document.body.classList.toggle('fs-mode', isFs);
+            chartFsBtn.setAttribute('aria-pressed', String(isFs));
+            // Enlarge icon when fullscreen
+            chartFsBtn.innerHTML = isFs
+                ? '<i class="fa-solid fa-down-left-and-up-right-to-center text-sm"></i>'
+                : '<i class="fa-solid fa-up-right-and-down-left-from-center text-sm"></i>';
+            // When entering FS and treemap visible, redraw to fit
+            if (showAssetsTreemap) {
+                setTimeout(updateDashboard, 0);
+            } else {
+                // Disable fit scaling in fullscreen mode
+                if (isFs) {
+                    // nothing; dimensions are fixed to viewport
+                } else {
+                    setTimeout(fitDashboardToViewport, 0);
+                }
+            }
+        };
+        chartFsBtn.addEventListener('click', handleFsToggle);
+        // Exit FS on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && tAccountCard.classList.contains('chart-fullscreen')) {
+                handleFsToggle();
+            }
         });
     }
 
@@ -746,6 +976,101 @@ window.onload = () => {
             }
         });
     }
+    
+    // Output modal functionality
+    const outputOpenBtn = document.getElementById('output-open-btn');
+    const outputModal = document.getElementById('output-modal');
+    const outputCloseBtn = document.getElementById('output-close-btn');
+    const outputTextarea = document.getElementById('output-textarea');
+    const copyOutputBtn = document.getElementById('copy-output-btn');
+
+    const ensureOutputElements = () => {
+        if (!outputOpenBtn || !outputModal || !outputCloseBtn || !outputTextarea || !copyOutputBtn) {
+            console.error('Output UI mangler ett eller flere elementer.');
+            return false;
+        }
+        return true;
+    };
+
+    const openOutputModal = () => {
+        if (!ensureOutputElements()) return;
+        outputTextarea.value = generateOutputText();
+        outputModal.classList.remove('hidden');
+        // Move focus for accessibility
+        outputCloseBtn.focus();
+    };
+
+    const closeOutputModal = () => {
+        if (!ensureOutputElements()) return;
+        outputModal.classList.add('hidden');
+    };
+
+    if (outputOpenBtn && outputModal && outputCloseBtn && outputTextarea && copyOutputBtn) {
+        outputOpenBtn.addEventListener('click', openOutputModal);
+        outputCloseBtn.addEventListener('click', closeOutputModal);
+        outputModal.addEventListener('click', (event) => {
+            if (event.target === outputModal) {
+                closeOutputModal();
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !outputModal.classList.contains('hidden')) {
+                closeOutputModal();
+            }
+        });
+
+        // Copy button behavior with success state reset
+        let copyResetTimer = null;
+        const setCopyState = (state) => {
+            if (state === 'success') {
+                copyOutputBtn.classList.remove('bg-blue-600', 'border-blue-500');
+                copyOutputBtn.classList.add('bg-green-600', 'border-green-500');
+                copyOutputBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Kopiert!';
+            } else {
+                copyOutputBtn.classList.remove('bg-green-600', 'border-green-500');
+                copyOutputBtn.classList.add('bg-blue-600', 'border-blue-500');
+                copyOutputBtn.innerHTML = '<i class="fa-solid fa-copy mr-1"></i>Kopier';
+            }
+        };
+
+        const copyToClipboard = async (text) => {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    throw new Error('Clipboard API ikke tilgjengelig');
+                }
+            } catch (err) {
+                // Fallback: midlertidig textarea
+                try {
+                    const temp = document.createElement('textarea');
+                    temp.value = text;
+                    temp.style.position = 'fixed';
+                    temp.style.left = '-9999px';
+                    document.body.appendChild(temp);
+                    temp.focus();
+                    temp.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(temp);
+                    if (!ok) throw new Error('execCommand copy mislyktes');
+                } catch (fallbackErr) {
+                    console.error('Kopiering feilet:', fallbackErr);
+                    alert('Kunne ikke kopiere til utklippstavlen. Marker og kopier manuelt.');
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        copyOutputBtn.addEventListener('click', async () => {
+            const ok = await copyToClipboard(outputTextarea.value);
+            if (ok) {
+                setCopyState('success');
+                if (copyResetTimer) clearTimeout(copyResetTimer);
+                copyResetTimer = setTimeout(() => setCopyState('idle'), 2000);
+            }
+        });
+    }
 };
 
 
@@ -755,4 +1080,76 @@ window.onload = () => {
 window.addEventListener('resize', () => {
     fitDashboardToViewport();
 });
+
+// Build output text aggregating input values and computed results
+function generateOutputText() {
+    try {
+        const nbCurrency = (val) => new Intl.NumberFormat('nb-NO', { style: 'currency', currency: 'NOK', maximumFractionDigits: 0 }).format(val || 0);
+        const nbNumber = (val) => new Intl.NumberFormat('nb-NO').format(val || 0);
+        const nbPercent = (val) => `${(val * 100).toFixed(1)} %`;
+
+        // Collect asset values
+        const assetLines = assets.map(a => `- ${a.name}: ${nbCurrency(a.value)}`);
+        // Collect liability values
+        const liabilityLines = liabilities.map(l => `- ${l.name}: ${nbCurrency(l.value)}`);
+        // Collect income values
+        const incomeLines = income.map(i => `- ${i.name}: ${nbCurrency(i.value)}`);
+
+        // Read fixed controls
+        const interestRate = parseFloat(document.getElementById('interest-rate-range')?.value || '0') / 100;
+        const interestRateDisplay = `${parseFloat(document.getElementById('interest-rate-range')?.value || '0').toFixed(1)} %`;
+        const loanTermYears = parseInt(document.getElementById('loan-term-range')?.value || '0');
+        const loanType = document.getElementById('loan-type')?.value === 'serial' ? 'Serielån' : 'Annuitetslån';
+        const annualCosts = parseInt(document.getElementById('annual-costs-range')?.value || '0');
+        const annualTax = parseInt(document.getElementById('annual-tax-range')?.value || '0');
+
+        // Totals from current state (same logic as dashboard)
+        const totalAssets = assets.reduce((s, a) => s + (a.value || 0), 0);
+        const totalLiabilities = liabilities.reduce((s, l) => s + (l.value || 0), 0);
+        const netWorth = totalAssets - totalLiabilities;
+        const totalIncome = income.reduce((s, i) => s + (i.value || 0), 0);
+
+        const mortgageValue = liabilities.find(l => l.id === 'liability-1')?.value || 0;
+        const payment = calculateLoanPayment(mortgageValue, interestRate, loanTermYears, document.getElementById('loan-type')?.value);
+        const interestOnlyForOtherDebts = liabilities
+            .filter(l => l.id !== 'liability-1')
+            .reduce((sum, l) => sum + (l.value * interestRate), 0);
+        const totalAnnualPayment = (payment?.annual || 0) + interestOnlyForOtherDebts;
+        const annualCashFlow = totalIncome - (annualCosts + annualTax) - totalAnnualPayment;
+
+        const loanToIncome = totalIncome > 0 ? totalLiabilities / totalIncome : 0; // x
+        const paymentToIncome = totalIncome > 0 ? totalAnnualPayment / totalIncome : 0; // percent
+        const debtToEquity = netWorth > 0 ? totalLiabilities / netWorth : 0; // x
+
+        const sections = [
+            'Output generert: ' + new Date().toLocaleString('no-NO'),
+            '',
+            '[Eiendeler]',
+            ...assetLines,
+            `= Sum eiendeler: ${nbCurrency(totalAssets)}`,
+            '',
+            '[Gjeld]',
+            ...liabilityLines,
+            `= Sum gjeld: ${nbCurrency(totalLiabilities)}`,
+            '',
+            '[Inntekter/kostnader]',
+            ...incomeLines,
+            `- Årlige kostnader: ${nbCurrency(annualCosts)}`,
+            `- Årlig skatt: ${nbCurrency(annualTax)}`,
+            `= Sum inntekter: ${nbCurrency(totalIncome)}`,
+            `= Renter og avdrag per år: ${nbCurrency(totalAnnualPayment)}`,
+            `= Kontantstrøm per år: ${nbCurrency(annualCashFlow)}`,
+            '',
+            '[Nøkkeltall/Anbefaling]',
+            `- Sum Inntekter / Gjeld: ${loanToIncome.toFixed(2)}x (mål: < 5x)`,
+            `- Renter og avdrag / Sum inntekter: ${nbPercent(paymentToIncome)} (mål: < 30%)`,
+            `- Gjeldsgrad (gjeld / egenkapital): ${debtToEquity.toFixed(2)}x (mål: < 2.5x)`
+        ];
+
+        return sections.join('\n');
+    } catch (err) {
+        console.error('Feil ved generering av output:', err);
+        return 'Kunne ikke generere output. Oppdater siden og prøv igjen.';
+    }
+}
 
