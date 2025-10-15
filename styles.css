@@ -179,7 +179,57 @@ p {
 /* Make taccount card match the height of the Eiendeler panel */
 #taccount-card {
     height: 100%;
+    position: relative; /* enable absolute treemap overlay */
 }
+/* Ensure inner relative container fills card so overlay covers full area */
+#taccount-card > .relative {
+    position: relative;
+    width: 100%;
+}
+
+/* Google Treemap overlay container */
+#google-treemap-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+}
+
+/* Fullscreen state for chart card */
+.chart-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 100 !important;
+    margin: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 16px !important;
+}
+
+/* Disable dashboard scaling while in fullscreen so fixed fills viewport */
+body.fs-mode { overflow: hidden; }
+body.fs-mode #dashboard-root { transform: none !important; left: 0 !important; top: 0 !important; }
+
+/* Scale up headings and labels inside fullscreen chart */
+.chart-fullscreen h3 {
+    font-size: 1.5rem !important;
+}
+.chart-fullscreen #assets-bar-container span,
+.chart-fullscreen #financing-bar-container span {
+    font-size: 1.125rem !important;
+}
+
+/* Treemap label sizing */
+#google-treemap-overlay svg text { font-size: 12px !important; }
+.chart-fullscreen #google-treemap-overlay svg text { font-size: 18px !important; }
+
+/* Collapsible boxes */
+.box { position: relative; }
+/* Strong collapse: hide everything, then re-enable the eye button */
+.box-collapsed * { display: none !important; }
+.box-collapsed .toggle-box-btn { display: inline-flex !important; }
 
 /* Rows should use full width: name 30%, slider 70% with value at end */
 .flex.items-center.space-x-2.bg-white.rounded-md > .asset-name-input,
@@ -377,5 +427,37 @@ input[type="range"]::-moz-range-thumb {
     color: var(--text-color);
     text-transform: uppercase;
     letter-spacing: 0.1em;
+}
+
+/* Output modal customizations */
+.output-textarea {
+    background-color: #0f172a; /* dark textarea to match theme */
+    color: #e2e8f0;           /* light text */
+    border-color: #334155;     /* slate-700 */
+    font-family: 'Whitney', 'Inter', sans-serif;
+    resize: vertical;
+}
+.output-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;    /* blue-500 */
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.35);
+}
+
+.copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: transform .08s ease, background-color .2s ease;
+}
+.copy-btn:hover {
+    filter: brightness(1.05);
+}
+.copy-btn:active {
+    transform: translateY(1px) scale(0.99);
+}
+
+@media (max-width: 640px) {
+    #output-modal .max-w-2xl { max-width: 100%; }
+    .output-textarea { height: 50vh; }
 }
 
