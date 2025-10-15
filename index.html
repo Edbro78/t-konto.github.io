@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2.2.3/dist/chartjs-chart-treemap.min.js"></script>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
     <script src="script.js"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -22,7 +23,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- Asset & Liability Sliders -->
-            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
+            <div id="box-assets" class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
                 
                 <div class="space-y-6">
                     <!-- Eiendeler (Assets) -->
@@ -85,7 +86,11 @@
                 <!-- Charts, KPIs and static right rail on large screens -->
                 <div class="grid grid-cols-1 lg:[grid-template-columns:minmax(0,1fr)_minmax(0,1.35fr)_6rem] gap-6 items-stretch">
                     <!-- T-Account Visualization -->
-                    <div id="taccount-card" class="bg-white p-6 rounded-xl shadow-lg h-full">
+            <div id="taccount-card" class="box bg-white p-6 rounded-xl shadow-lg h-full">
+                        <!-- Fullscreen toggle button anchored to the card's top-right corner -->
+                        <button id="chart-fs-btn" class="absolute top-2 right-2 z-20 inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-60 text-white hover:bg-blue focus:outline-none focus:ring-2 focus:ring-blue-60 focus:ring-offset-2 shadow" aria-pressed="false" title="Forstørr/tilbakestill">
+                            <i class="fa-solid fa-up-right-and-down-left-from-center text-sm"></i>
+                        </button>
                         <div class="relative w-full h-[600px] flex">
                             <!-- Assets Column -->
                             <div class="w-1/2 pt-0 px-4 pb-4 flex flex-col items-center">
@@ -107,7 +112,10 @@
                     </div>
 
                     <!-- Key Ratios Table -->
-                    <div id="kpi-card" class="bg-white p-6 rounded-xl shadow-lg h-full">
+                    <div id="kpi-card" class="box bg-white p-6 rounded-xl shadow-lg h-full">
+                        <button class="toggle-box-btn absolute bottom-2 right-2 inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-60 text-white hover:bg-blue focus:outline-none shadow" data-target="kpi-card" title="Skjul/vis">
+                            <i class="fa-solid fa-eye text-xs"></i>
+                        </button>
                         <h3 class="heading-m mb-4">Nøkkeltall og anbefalinger</h3>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left table-auto">
@@ -125,11 +133,11 @@
                     </div>
                     <!-- Static right rail with toggle button (always visible on large screens) -->
                     <div id="kpi-rail" class="bg-white p-3 rounded-xl shadow-lg h-full hidden lg:flex flex-col items-center justify-start space-y-2">
-                        <button id="toggle-kpi-btn" class="w-full inline-flex items-center justify-center text-xs bg-blue-60 text-white px-2 py-1 rounded-full hover:bg-blue focus:outline-none focus:ring-2 focus:ring-blue-60 focus:ring-offset-2 shadow" aria-pressed="false">
-                            Skjul
-                        </button>
                         <button id="disclaimer-btn" class="w-full inline-flex items-center justify-center text-xs bg-blue-60 text-white px-2 py-1 rounded-full hover:bg-blue focus:outline-none focus:ring-2 focus:ring-blue-60 focus:ring-offset-2 shadow">
                             Disclaimer
+                        </button>
+                        <button id="all-graphics-btn" class="w-full inline-flex items-center justify-center text-xs bg-blue-60 text-white px-2 py-1 rounded-full hover:bg-blue focus:outline-none focus:ring-2 focus:ring-blue-60 focus:ring-offset-2 shadow">
+                            alt grafikk
                         </button>
                     </div>
                 </div>
@@ -137,9 +145,12 @@
                 <!-- Income and Summary aligned with top layout -->
                 <div class="grid grid-cols-1 lg:[grid-template-columns:minmax(0,1.6fr)_minmax(0,0.85fr)_6rem] gap-6 items-stretch">
                     <!-- Income box -->
-                    <div id="income-card" class="bg-cyan-20 p-4 rounded-xl h-full lg:col-span-1">
+                    <div id="income-card" class="box bg-cyan-20 p-4 rounded-xl h-full lg:col-span-1">
+                        <button class="toggle-box-btn absolute bottom-2 right-2 inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-60 text-white hover:bg-blue focus:outline-none shadow" data-target="income-card" title="Skjul/vis">
+                            <i class="fa-solid fa-eye text-xs"></i>
+                        </button>
                         <h3 class="heading-m mb-2">Inntekt</h3>
-                        <div id="income-container" class="space-y-4">
+                        <div id="income-container" class="box-content space-y-4">
                             <!-- Dynamic income will be added here by JavaScript -->
                         </div>
                         <!-- Annual tax slider - styled like income rows -->
@@ -169,7 +180,10 @@
                         </button>
                     </div>
                     <!-- Summary card (aligned to second column) -->
-                    <div id="summary-card" class="bg-cyan-20 p-4 rounded-xl h-full lg:col-start-2 lg:col-span-2">
+                    <div id="summary-card" class="box bg-cyan-20 p-4 rounded-xl h-full lg:col-start-2 lg:col-span-2">
+                        <button class="toggle-box-btn absolute bottom-2 right-2 inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-60 text-white hover:bg-blue focus:outline-none shadow" data-target="summary-card" title="Skjul/vis">
+                            <i class="fa-solid fa-eye text-xs"></i>
+                        </button>
                         <div class="flex flex-col justify-around items-center h-full space-y-6">
                             <div class="text-center">
                                 <h3 class="text-sm md:text-base font-semibold uppercase text-assets-blue">Eiendeler</h3>
@@ -205,6 +219,33 @@
                     <p>Resultatet av de beregninger som gjøres i kalkulatoren vil variere ut ifra hvilke tall som legges til grunn. Tallene som legges til grunn bestemmes i samtale mellom rådgiver og deltaker i møtet. Resultatet vil dermed kunne variere fra de tallene som fremkommer offisielle dokumenter i tilknytning til ytelse av investeringsrådgivning.</p>
                     
                     <p>Beregningene i kalkulatoren må ansees som statiske og er kun ment for illustrasjonsformål. For konkrete fremstillinger, vises det til offisielle dokumenter knyttet til rådgivningen.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Output floating button -->
+    <button id="output-open-btn" class="fixed z-50 bottom-4 right-4 px-3 py-1.5 text-xs font-medium rounded-full bg-slate-700/70 hover:bg-slate-700 text-slate-200 border border-slate-600/70 shadow-sm transition-colors">
+        <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>
+        Output
+    </button>
+
+    <!-- Output Modal -->
+    <div id="output-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-slate-200 flex items-start justify-between">
+                <h2 class="heading-l text-coal">Output</h2>
+                <button id="output-close-btn" class="text-coal hover:text-dark-blue transition-colors duration-200 p-2">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="relative">
+                    <textarea id="output-textarea" class="output-textarea w-full h-64 p-4 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-sans" readonly></textarea>
+                    <button id="copy-output-btn" class="copy-btn absolute bottom-3 right-3 inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full bg-blue-600 text-white border border-blue-500 hover:bg-blue-500 active:scale-[0.98] transition-all shadow-sm">
+                        <i class="fa-solid fa-copy mr-1"></i>
+                        Kopier
+                    </button>
                 </div>
             </div>
         </div>
